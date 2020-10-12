@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">PFA Client</string>
+    <string name="off">off</string>
+    <string name="on">on</string>
+</resources>
