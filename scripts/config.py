@@ -40,6 +40,7 @@ class Config:
 		PIXEL_PER_FEET = "pixel_per_feet"
 		DWELL_LIMIT = "dwell_limit"
 		DWELL_TIME_AVERAGE = "dwell_time_average"
+		CAM_MODE = "cam_mode"
 
 		# Set config file
 		config = configparser.ConfigParser()
@@ -82,9 +83,6 @@ class Config:
 		finally:
 
 			pass
-
-		
-
 
 		############################################################################################
 
@@ -236,7 +234,6 @@ class Config:
 			# Set dwell time average from user config. Average of a location and its neighbors.
 			ave_percent = config.getfloat('alert_setting', DWELL_TIME_AVERAGE)
 			
-
 		except:
 
 			print("[ERROR] Config set for DWELL_TIME_AVERAGE is invalid! Default {} is used."\
@@ -253,6 +250,29 @@ class Config:
 
 			pass
 
+		############################################################################################
+
+		try:
+
+			# Set camera mode from user config
+			cam_mode = config.getfloat('other_setting', CAM_MODE)
+			
+		except:
+
+			print("[ERROR] Config set for CAM_MODE is invalid! Default {} is used."\
+				.format(constant.CAM_MODE))
+			# Set default camera mode
+			self.__cam_mode = constant.CAM_MODE
+
+		else:
+
+			# Check if camera mode is valid
+			self.__cam_mode = self.__get_valid_cam_mode(cam_mode)
+			print("CAM_MODE config is set successfully!")
+
+		finally:
+
+			pass
 
 
 		############################################################################################
@@ -329,6 +349,15 @@ class Config:
 
 		return self.__dwell_time_average
 
+	# function get_cam_mode
+	# Description: Function that returns the camera mode from user config
+	# Paremeter: None
+	# Return value: __cam_mode
+	def get_cam_mode(self):
+		"""Returns camera mode"""
+
+		return self.__cam_mode
+
 	# function get_aspect_ratio
 	# Description: Function that returns the aspect ratio from user config
 	# Paremeter: None
@@ -380,6 +409,22 @@ class Config:
 
 		return px
 
+	# function __get_valid_cam_mode
+	# Description: Function that serves as a guard for camera mode
+	# Paremeter: None
+	# Return value: px
+	def __get_valid_cam_mode(self, cam_mode):
+		"""Guards for camera mode"""
+
+		if constant.USB_CAM_MODE == cam_mode or \
+			constant.RPI_CAM_MODE == cam_mode:
+			pass
+		else:
+			# Set default 
+			cam_mode = constant.CAM_MODE
+
+		return cam_mode
+
 	# function __set_defaults
 	# Description: Function that set default for all config settings
 	# Paremeter: None
@@ -398,5 +443,6 @@ class Config:
 		self.__aspect_ratio = self.__ar_height, self.__ar_width 
 		self.__dwell_limit = constant.DWELL_LIMIT
 		self.__dwell_time_average = constant.DWELL_AVERAGE_LIMIT
+		self.__cam_mode = constant.CAM_MODE
 
 		print("[INFO] Config default settings are used")

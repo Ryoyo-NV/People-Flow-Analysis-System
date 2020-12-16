@@ -1,5 +1,5 @@
 # People Flow Analysis System
-# Elastic Stack
+# Open-Distro
 This is for visualizing information gathered by the Azure IoT Hub from the
 Jetson Nano devices. The following documents the installation and setup
 of the Elastic Stack (Logstash, Elasticsearch, Kibana) on the Azure Cloud environment.
@@ -23,169 +23,319 @@ of the Elastic Stack (Logstash, Elasticsearch, Kibana) on the Azure Cloud enviro
    * Create IoT Hub: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal
    * Connect IoT device to Azure IoT Hub: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-raspberry-pi-kit-node-get-started
 
-### logstash.conf file Preparation
-
-   **Retrieve the connection string endpoint**
-   1. Select the added IoT device menu in IoT hub resource and go to "Built-in endpoints"
-   2. Under the Event Hub compatible endpoint section, set the Shared access policy to service.
-   3. Copy the value shown in Event Hub-compatible endpoint.
-   4. Download the logstash.conf file found in the logstash folder.
-   4. Paste the copied connection string endpoint to the event_hub_connections in logstash.conf file.
 
 ## Installation
-### Elastic Stack on Azure
-**Note:** Creating virtual machines in Azure is not free. Alternatively, Elastic Stack can be created on-premise.
+### A. Virtual Machine on Azure
+**Note:** Creating virtual machines in Azure is not free. 
 
    1. From the Azure Portal, go to the **Marketplace**.
-   2. Search for **Elasticsearch (Self-Managed)**. Then click the **Create** button.
+   2. Search for **Virtual Machine**. Then click the **Add** button.
    3. Fill-in the required information for the following tabs,
 
-   **Basics**
+		**Basics**
+		
+			a.Select available subscription
+			b.Create a new resource group and enter your desired resource group
+			c.Enter virtual machine name
+			d.Set the region for deployment (Japan West)
+			e.Set Availability options to “No infrastructure redundancy required”
+			f.Set image to Ubuntu Server 18.04 LTS Gen 1
+			g.Set size your desired RAM size
+				Note: We recommend allowing Docker to use at least 4 GB of RAM
+			h.Set authentication type to “Password”
+			i.Enter username and password
+			j.Set inbound ports to SSH (22)
+
+		**Disks**
+		
+		 	a. Set OS disk type to Standard SSD
+			b. Set Encryption type to Default
+
+		**Networking**
+		
+		 	a.Set NIC network security group to Basic
+			b.Set Public inbound ports to Allow selected ports
+			c.Set Accelerated networking to Off
+
+	 	**Management**
+		
+			a.Disable Boot Diagnostics
+			b.Set OS guest diagnostics to Off
+			c.Set System assigned managed identity to Off
+			d.Set Enable backup to Off
+
+   4. Click Review and Create to see the summary
+   5. Click Create to create VM
+   6. Go to the newly create VM
+   7. Go to networking
+   8. Click Add inbound port rule
+   9. Change Destination port ranges to 5601
+   10. Change Priority to 110
+   11. Enter desired Name
+   12. Click Add
+
+### B. Docker and docker-compose Installation
+1. Go to cloudshell in azure portal
+2. Enter the VM
+```
+$ ssh <username>@<ip address of vm>
+```
+3. Enter password of VM
+4. Docker installation command
+```
+$ sudo apt update
+$ sudo apt install apt-transport-https ca-certificates curl software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo add-apt-repository “deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable”
+$ sudo apt update
+$ sudo apt install docker-ce
+$ sudo systemctl status docker
+```
+5. Docker compose installation command
+```
+$ sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+$ sudo chmod +x /usr/local/bin/docker-compose
+$ sudo docker-compose --version
+```
+6. Check docker version to know if docker is running
+```
+$ sudo docker --version
+```
+7. Pull docker image for Open-Distro for Elasticsearch and Kibana
+```
+$ sudo docker pull amazon/opendistro-for-elasticsearch:1.10.1
+$ sudo docker pull amazon/opendistro-for-elasticsearch-kibana:1.10.1
+```
+8. Pull logstash oss
+```
+$ sudo docker pull docker.elastic.co/logstash/logstash-oss:7.9.1
+$ sudo docker images
+```
+9. Run the image
+```
+$ sudo docker run -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" amazon/opendistro-for-elasticsearch:1.10.1
+```
+10. Create custom docker-compose.yml file inside open-distro folder
+```
+$ cd /
+$ cd home
+$ sudo mkdir open-distro
+$ cd open-distro
+$ sudo touch docker-compose.yml
+$ sudo nano docker-compose.yml
+```
+   *See docker-compose.yml as reference*
+   
+11. Create custom logstash.conf inside open-distro folder. Go to directory /home/open-distro 
+```
+$ sudo touch logstash.conf
+$ sudo nano logstash.conf
+```
+
+**Change event_hub_connections**
+
+a. Retrieve the connection string endpoint by accessing the **Azure IoT Hub > Built-in endpoints.**
+
+b. Under the **Event Hub compatible endpoint** section, set the shared access policy to **service**.
+
+c. Copy the value shown in** Event Hub-compatible endpoint.**
+
+d. Paste the copied connection string endpoint to the **event_hub_connections** in **logstash.conf** file.
+
+   *See logstash.conf as reference*
+
+### C. Run Open Distro for Elasticsearch
+```
+$ sudo add-apt-repository ppa:openjdk-r/ppa
+$ sudo apt update
+$ sudo apt install openjdk-11-jdk
+$ sudo apt install unzip
+$ wget -qO - https://d3g5vo6xdbdb9a.cloudfront.net/GPG-KEY-opendistroforelasticsearch | sudo apt-key add -
+$ echo "deb https://d3g5vo6xdbdb9a.cloudfront.net/apt stable main" | sudo tee -a   /etc/apt/sources.list.d/opendistroforelasticsearch.list
+$ sudo wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-7.9.1-amd64.deb
+$ sudo dpkg -i elasticsearch-oss-7.9.1-amd64.deb
+$ sudo apt-get update
+$ sudo apt install opendistroforelasticsearch
+$ sudo apt install opendistroforelasticsearch-kibana
+```
+
+1. Edit custom kibana.yml 
+Go to directory etc/kibana/
+Use elasticsearch.hosts: ELASTICSEARCH_HOSTS  instead of elasticsearch.url
+   *See kibana.yml as reference*
+
+2. Run, Elasticsearch, Kibana and Logstash containers
+Go to /home/open-distro directory
+```
+$ sudo docker-compose up
+```
+
+Note: If error is encountered in one of the containers, run this command
+```
+$ sudo docker-compose down -v
+```
+then
+```
+$ sudo docker-compose up
+```
       
-      a. Select available Subscription
-      b. Create a new Resource group
-      c. Set the Region for deployment
-      d. Enter desired Username
-      e. Enter desired Password and Confirm password
-
-   **Cluster Settings**
-
-      a. Confirm that the latest Elasticsearch version is selected (v7.8.0 as of documentation)
-      b. Enter desired Cluster name
-
-   **Nodes Configuration**
-
-      a. (Optional) Set Hostname prefix
-      b. Set Number of data nodes to 1
-      c. Select Yes for Data nodes are master eligible
-
-   **Kibana & Logstash**
-
-      a. Set Yes for Install Kibana?
-      b. Set Yes for Install Logstash?
-      c. Set number of Logstash VMs to 1
-      d. On Logstash config file, upload the prepared "logstash.conf" file
-      e. Enter azure_event_hubs on Additional Logstash plugins
-
-   **Security**
-
-      a. Enter desired passwords for each default user accounts
-
-   **Certificates**
-
-      a. SSL Certificates are not involved in this setup. Set No for Configure Transport Layer Security
-
-   *Note: Azure only allows a Total Regional Cores quota of 4. Requiring more cores would require to submit a request for Quota increase with Microsoft Support.
-
-   4. Click the **Review + create** button and wait until deployment is complete, then select **Create** button.
-
-## Running Elastic Stack
-Accessing Elastic Stack is done via PuTTY or other similar tools.
-
-**Note:** By default, Kibana and Elasticsearch are run as a service after the VMs are created.
-
-1. Retrieve the Kibana **DNS name** in the **Overview** panel of the Kibana VM in Azure. This will be used to access via PuTTY.
-
-2.	Access the Kibana VM perform the following,
-* Access via PuTTY or similar tools
-
-**Host Name** – the DNS name of Kibana retrieved from step 1.
-
-**Username** – the username created from **Elastic Stack on Azure, Step 3, Basics** section, **d**.
-
-**Password** – the password created from **Elastic Stack on Azure, Step 3, Basics** section, **e**.
-* Access via Linux terminal. Please note, `<kibana DNS name>` refers to the **DNS name** retrieved from Step 1.
+## Operation Instructions
+### Starting containers
+1. Start the Elasticsearch, Kibana, and Logstash containers.
 ```
-$ ssh <username>@<kibana DNS name>
+$sudo docker-compose start
 ```
-3.	Confirm that Kibana is running.
+2. Make sure the Elasticsearch, Kibana, and Logstash containers are up and running.
+``` 
+$ sudo docker ps
 ```
-$ service kibana status
-```
-if the status is not running, start the Kibana service
-```
-$ sudo service kibana start
-```
-4.	Access Elasticsearch VM and confirm that Elasticsearch is running.
-Please note, if you set the Hostname prefix from **Installation, Elastic Stack on Azure, Step 3, Nodes Configuration, a.**, prepend data-0 with the set prefix. For instance, if the prefix was `pfa`, the VM will be `pfadata-0`
-```
-$ ssh <username>@data-0
-$ service elasticsearch status
-```
-if the status is not running, start the Elasticsearch service
-```
-$ sudo service elasticsearch start
-```
-5.	Access Logstash VM.
-Please note, if you set the Hostname prefix from **Installation, Elastic Stack on Azure, Step 3, Nodes Configuration, a.**, prepend logstash-0 with the set prefix. For instance, if the prefix was `pfa`, the VM will be `pfalogstash-0`
-```
-$ ssh <username>@logstash-0
-```
-6.	Add the password of elastic user to the keystore file
-```
-$ sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ELASTIC_PASSWORD
-```
-7.	Execute Logstash
-* To run Logstash as a service,
-```
-$ sudo service logstash start
-```
-* To run Logstash manually,
-```
-$ sudo /usr/share/logstash/bin/logstash --path.settings /etc/logstash
-```
-8. You can now access Kibana via browser using the DNS Name of kibana with port 5601.
+Note: Status column should have the value "Up"
 
-**Note:**
-* `<username>` is retrieved from the IV. Installation, **A. Elastic Stack on Azure, Step 3, Basics** section, **d**.
-* In the event an error is encountered when executing the command above, please refer to **Known Issues, A. Corrupted keystore file on Logstash host** section.
-* When entering the value for **ELASTIC_PASSWORD**, enter the password inputted on Elastic user account from **Installation, A. Elastic Stack on Azure, Step 3, Security** section.
+3. To install azure event hub plugin, access the logstash
+```
+$ sudo docker exec -it logstash bash
+```
+4. Install the azure event hub plugin using the command
+```
+$ /usr/share/logstash/bin/logstash-plugin install logstash-input-azure_event_hubs
+```
+Note: if you don't know where is your logstash, you can find the location using:
+```
+$ whereis logstash
+```
+5. Start Elasticsearch service
+```
+$ sudo systemctl start elasticsearch.service
+```
+6. Start Kibana service
+```
+$ sudo systemctl start kibana.service
+```
+7. Check the status of the services using the below command respectively:
+```
+$ sudo systemctl status elasticsearch.service
+$ sudo systemctl status kibana.service
+```
 
+### Creating Indexes
+   1. On the menu, click **Stack Management** under Management.
+   2. Click **Index Patterns.**
+   3. Click **Create Index Pattern.**
+   4. Input the desired string pattern to select from the list of indices. Then click the **Next step** button.
+   5. Select the **message.time** field for time filtering. Then click the **Create index pattern** button. 
+   6. The next page shows the list of fields of the selected indexes.
+   
+   
+### Creating Visualizations
+**Dweller Count**
+1. On the menu, click **Visualize.**
+2. Click the **Create visualization** button.
+3. From the list of visualizations, click **Vertical Bar** visualization.
+4. Select the index to use.
+5. Expand the **Y-axis** under **Metrics.**
+6. Select **Count** as Aggregation and set the label name to **Customers.**
+7. Click the **Add** button under **Buckets** and select **X-axis.**
+8. Select **Date Histogram** as Aggregation. Set **message.time** for the Field. Set **Day** for the Minimum interval. Set the label name to **Period.**
+9. Click the **Update** button.
+10. Click the **Save** button.
+11 .Set the Title for the visualization to **Dweller Count**. Optionally, you can enter the description for the visualization. Then click the **Save** button.
+
+**Dweller Peak Times**
+1. On the menu, click **Visualize.**
+2. Click the **Create visualization** button.
+3. From the list of visualizations, click **Vertical Bar** visualization.
+4. Select the index to use.
+5. Expand the **Y-axis** under **Metrics.**
+6. Select **Count** as Aggregation and set the label name to **Customers.**
+7. Click the **Add **button under **Buckets** and select **X-axis.**
+8. Select **Date Histogram** as Aggregation. Set **message.time** for the Field. Set **Hour** for the Minimum interval. Set the label name to **Time.**
+9. Click the **Update** button.
+10. Click the **Save** button.
+11. Set the Title for the visualization to **Dweller Peak Times**. Optionally, you can enter the description for the visualization. Then click the **Save** button.
+
+**Dweller Count Year Overview**
+1. On the menu, click **Visualize.**
+2. Click the **Create visualization** button.
+3. From the list of visualizations, click **Pie** visualization.
+4. Select the index to use.
+5. Expand the **Slice size** under **Metrics.**
+6. Select **Count** as Aggregation and set the label name to **Customers.**
+7. Click the **Add** button under Buckets and select Split slices.
+8. Select **Date Histogram** as Aggregation. Set **message.time** for the Field. Set **Month** for the Minimum interval. Set the label name to Month.
+9. Click the **Update** button.
+10. Click the **Save** button.
+11. Set the Title for the visualization to **Dweller Count Year Overview**. Optionally, you can enter the description for the visualization. Then click the **Save** button.
+
+### Creating Dashboard
+1. On the menu, click **Dashboard.**
+2. Click the **Create Dashboard** button.
+3. Click **Add** link.
+4. On the **Add Panels** panel, click the **Dweller Count**, **Dweller Peak Times**, and **Dweller Count Year Overview** visualizations. Then click the close button.
+5. Set the Time Filter to display data for the current day.
+6. On the **Dweller Count visualization**, click the **gear** icon on the top-right of the visualization.
+7. Click **Edit visualization.**
+8. Click **Add filter**
+9. Set field to **@timestamp** and operator to **is between**
+10. Set the time range to the current month.
+11. On the **Dweller Count Year Overview** visualization, click the **gear** icon on the top-right of the visualization.
+12. Click **Edit visualization.**
+13. Click Add filter
+14. Set field to **@timestamp** and operator to **is between**
+15. Set the time range to the current year.
+16. Click **Save** link.
+17. Set the Title to PFA Dashboard.
+18. Click on the **Store time with dashboard.**
+19. Click the **Save** button. 
+
+### Advanced Settings
+1.On the menu, click Stack Management.
+2.Click Advanced Settings.
+3.Look for Scaled date format.
+4.Add the following blue highlighted text into the textbox. Modify into the specified green highlighted text in the textbox as shown below,
+```
+[
+  ["", "HH:mm:ss.SSS"],
+  ["PT1S", "HH:mm:ss"],
+  ["PT1M", "HH:mm"],
+  ["PT1H", "HH:mm"],
+  ["P1DT", "MMM-DD"],
+  ["P1MT", "MMMM"],
+  ["P1YT", "YYYY"]
+]
+```
+5.A notification at the bottom pops up. Click Save Changes button. 
+
+### Stopping containers
+1. Access Kibana VM
+2. Stopping the Kibana service,
+```
+$ sudo systemctl stop kibana.service   
+```
+3.Stopping Elasticsearch service,
+```
+$ sudo systemctl stop elasticsearch.service
+```
+4. Stopping all containers
+```
+$ sudo docker-compose stop
+```
 
 ## Known Issues
-1. **Corrupted keystore file on Logstash host**. This is encountered when trying to execute Logstash
-   and displays an error that it cannot read */etc/logstash/logstash.keystore* file or cannot read
-   *${ELASTICSEARCH_URL}* and *${LOGSTASH_SYSTEM_PASSWORD}* variables. This is identified with the
-   following message when interacting with logstash-keystore,
+1. ERROR: for odfe-node1. Cannot start service odfe-node1: listen tcp 0.0.0.0:9600: bind: address already in use. (Errors occurs when you run/up the docker-compose but the elasticsearch.service was already running.)
 
-   ```
-   Found a file at /etc/logstash/logstash.keystore, but it is not a valid Logstash keystore.
-   ```
-
-a. Remove the keystore file.
-  ```
-  $ sudo rm -rf /etc/logstash/logstash.keystore
-  ```
-b. Create a new keystore file.
-  ```
-  $ sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create
-  ```
-c. Add the necessary keys. Then input the value when asked.
-```
-$ sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ELASTICSEARCH_URL
-$ sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add LOGSTASH_SYSTEM_PASSWORD
-$ sudo /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add ELASTIC_PASSWORD
-```
-Note: 
-*	When entering the value for **ELASTICSEARCH_URL**, enter the computer name of the Elasticsearch virtual machine. For instance, if the computer name is data-0, the ELASTICSEARCH_URL value should be **http://data-0:9200**.
-*	When entering the value for **LOGSTASH_SYSTEM_PASSWORD**, enter the password inputted on **Logstash system user account** from **IV. Installation, A. Elastic Stack on Azure, Step 3, Security section**.
-*	When entering the value for **ELASTIC_PASSWORD**, enter the password inputted on **Elastic user account** from **IV. Installation, A. Elastic Stack on Azure, Step 3, Security section**.
-
-2. **Alert Message not received after machine restart**. When shutting down the virtual machines are performed regularly, various errors will occur where logstash couldn’t read logstash.keystore file due to permission issues. As of documentation, an appropriate fix doesn’t exist. But the following workaround can mitigate this issue. •	After starting the Logstash VM from shutdown state and starting the logstash service, logstash doesn’t receive data from Azure IoT Hub.
-
-a.	Delete the logstash configuration from the sysconfig directory
-```
-$ sudo rm -rf /etc/sysconfig/logstash
-```
-b.	Change the user and group to `root` in the logstash.service file
-```
-$ sudo nano /etc/systemd/system/logstash.service
-```
-
-logstash.service
-```
-[Service]
-Type=simple
-User=root
-Group=root
-```
+      a.Check status of Elasticsearch service if running:
+      ```
+      $ sudo systemctl status elasticsearch.service
+      ```
+      b.If running, stop the service.
+      ```
+      $ sudo systemctl stop elasticsearch service
+      ```
+      c.Stop docker-compose
+      ```
+      $ sudo docker-compose down –v
+      ```
+      d.Start again the docker-compose.
+      ```
+      $ sudo docker-compose up
+      ```

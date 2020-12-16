@@ -1,126 +1,134 @@
 # People Flow Analysis System
 
-A low-cost People Flow Analysis system developed using NVIDIA's Jetson Nano and Deepstream SDK, integrated with high quality open source software and library.
+A low-cost People Flow Analysis System developed using NVIDIA's Jetson and Deepstream SDK, integrated with high quality open source software and library.
 
 The system is able to monitor every person within the camera vision. Each person detected will be tracked giving a unique track ID and a green bounding box will be drawn on it. When the detected person stay on the same spot for a certain duration, the system will send a message alert to an authorized Azure Iot Hub and android mobile phone. The message alert constains time, track id and location. 
 
 There is also a calibration process to define the ground surface mapping from the camera view. The calibration input will be set by the user.
 
-
-<img src="video/SCOPE2-oss_release_candidate.mp4.gif" hight="480"/>
-
-**Hardware Setup:**
-
-	NVIDIA Jetson Nano with at least 32gb SD card
-	7" 1024x600 capacitive touch monitor
-	8 MP Pi Camera 
-
-**Setup pre-requisites:**
-
-	JetPack SDK 4.4 Developer Preview
-	NVIDIA DeepStream SDK 5.0 Developer Preview
-	DeepStream SDK Python Bindings
-	Python 3.6
-	Gst-python
-	SORT dependencies (filterpy,scikit-image,lap)
-	MQTT Client
-	Azure IoT Device SDK
-	Mosquitto MQTT Broker
-	Download sample data
-	Download trained model data
+<img src="src/people_flow_analysis_demo.gif" hight="480"/>
 
 
-## Installing Pre-requisites in Jetson Nano:
+## Prerequisite
 
-**Jetpack SDK 4.4 Developer Preview:**
+- NVIDIA Jetson Platform
+- [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.4
+- USB webcam or 8 MP Pi Camera or Video(.h264 format)
 
- Download and install from [NVIDIA Jetpack SDK](https://developer.nvidia.com/jetpack-sdk-44-dp-archive) archive
+Option:
+- 7" 1024x600 capacitive touch monitor
 
-**DeepStream SDK 5.0 Developer Preview:**
+Test on:
 
- Download and install from [NVIDIA Deepstream SDK](https://developer.nvidia.com/embedded/deepstream-on-jetson-downloads-archived) archive
+- Jetson Xavier nano, JetPack 4.4, Video, and USB webcam. 
 
-**DeepStream SDK Python Bindings**
+## Installation
 
-Download the [Python Bindings](https://drive.google.com/drive/folders/18bnRlgsENRl8Enl6DCqd4YcYZvNPO2AW) 
-release package from the link and unpack it under Deepstream 5.0 installation
+### Requirements:
 
-	$ tar xf ds_pybind_v0.9.tbz2 -C <DeepStream 5.0 ROOT>/sources
-
-**Gst-python:**
-
-Should be already installed on Jetson.
-If missing, install with the following steps:
-
-	$ sudo apt update
-	$ sudo apt install python3-gi python3-dev python3-gst-1.0 -y
-
-**SORT dependencies:**
-
-	$ sudo apt install liblapack-dev libblas-dev gfortran 
-	$ sudo pip3 install filterpy==1.4.5
-	$ pip3 install scikit-image==0.17.2
-	$ pip3 install lap==0.4.0
+- [NVIDIA DeepStream](https://developer.nvidia.com/deepstream-sdk) 5.0
+- SORT dependencies (filterpy,scikit-image,lap)
+- MQTT Client
+- Mosquitto MQTT Broker
+- Download sample data
+- Download trained model data
+- Azure IoT Device
+- Open Distro for ElasticSearch 
+- Open Distro for Kibana 
+- Azure Visual Machine
 
 
-**Download sample data**
+#### 1. Clone this repository 
+```
+$ git clone <this repo>
+```
+#### 2. To install DeepStream SDK
+Installing the five methods. Using the DeepStream tar package here.  
+Download package [here](https://developer.nvidia.com/deepstream-getting-started) .
 
+```
+$ sudo tar -xvf deepstream_sdk_<deepstream_version>_jetson.tbz2 -C /
+$ cd /opt/nvidia/deepstream/deepstream-5.0
+$ sudo ./install.sh
+$ sudo ldconfig
+```
+See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Quickstart.html#install-the-deepstream-sdk) , and more.  
+
+
+Python Bindings
+```
+$ cd /opt/nvidia/deepstream/deepstream-5.0/lib
+$ sudo python3 setup.py install
+```
+
+See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Python_Sample_Apps.html#metadata-access) , and more.
+
+
+#### 3. To install SORT 
+
+```
+$ sudo apt install liblapack-dev libblas-dev gfortran 
+$ sudo pip3 install filterpy==1.4.5
+$ pip3 install scikit-image==0.17.2
+$ pip3 install lap==0.4.0
+```
+
+#### 4. Download sample data
 Please download the sample data in [Gdrive data link](https://drive.google.com/drive/folders/1FuzkG_qyEnLudL6LgIP9xKrCClFKcsKW)
 
-**MQTT Client:**
+#### 5. To install MQTT Client
+```
+$ pip3 install paho-mqtt
+```
 
-	$ pip install paho-mqtt
+#### 6. To install Mosquitto MQTT Broker
+```
+$ sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
+$ sudo apt update
+$ sudo apt install mosquitto
+```
 
-**Azure IoT Device SDK:**
-
-	$ pip install azure-iot-device
-
-**Mosquitto MQTT Broker:**
-
-	$ sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
-	$ sudo apt-get update
-	$ sudo apt-get install mosquitto
-
-**Install Mobile App:**
+#### 7. To install Mobile App  
 
 Please access the APK link below in your Android phone and allow to install.
 
 [PFAClientApp-Alpha2.apk](https://drive.google.com/drive/folders/1zAMG0OcnXf-EKDMMqg99PL0fIylpTnp-)
 
-Usage of the mobile application is presented in the demo video file. 
+Usage of the mobile application is presented in the [demo video](src/people_flow_analysis_demo.gif). 
 
-**Mobile Connection Setup:**
+#### 8. Mobile Connection Setup
+1. On Linux terminal, start the mosquitto message broker service
+	```	
+	$ sudo service mosquitto start
+	```
 
-	1. On Linux terminal, start the mosquitto message broker service
-		sudo service mosquitto start
+2. Using "PFA Client" mobile application, select to connection button. 
+	Once connection is established, the application is now readdy to receive the message alerts.  
 
-	2. Using "PFA Client" mobile application, select to connection button. 
-	   Once connection is established, the application is now readdy to receive the message alerts.  
+Note: 
+1. Stopping the mosquitto message broker service will disable mobile connections to all PFA client applications
 
-	Note: 1. Stopping the mosquitto message broker service will disable mobile connections to all PFA client applications
-	       		sudo service mosquitto stop
-	      2. Mobile and Jetson Nano must be connected in the same area network.
+```
+$ sudo service mosquitto stop
+```
+2. Mobile and Jetson must be connected in the same area network.
 
-**Kibana:**
+#### 9. To install Azure IoT Device 
+```
+$ pip3 install azure-iot-device
+```
 
-Please refer to the README guide in Kibana folder for the setup details.
+#### 10. To install Open Distro for Elasticsearch and Kibana
+Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup details.
 
-Usage of the Kibana Dashboard is presented in the demo video file. 
-
+ 
+## Usage
 
 ## Running the Application
 
 People Flow Analysis System is configured to work with DeepStream SDK 5.0 with Python Bindings installation. 
 
-1. Extract the pfasys_candidate_rel.zip
 
-2. Confirm the Deepstream and Python Bindings PATH declaration inside /pfasys/common/is_aarch_64.py
-
-	`$ gedit /pfasys/common/is_aarch_64.py`
-	
-	DS_PATH='/opt/nvidia/deepstream/deepstream-5.0'
-	
-	PY_PATH=DS_PATH+'/sources/python/bindings/'
 
 3. Download the models folder from the [GDrive link](https://drive.google.com/drive/folders/1ZGrdZd7QUYO3_X3DO7HcEQt4n8VYJ6S-).
 

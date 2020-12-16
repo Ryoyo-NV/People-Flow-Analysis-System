@@ -109,7 +109,8 @@ class Tracker(cc.Calibration):
             self.__conf_ar_width = config.get_ar_width()     # Set aspect ratio width from user config
             self.__conf_ar_height = config.get_ar_height()   # Set aspect ratio height from user config
             self.__conf_ar = config.get_aspect_ratio()       # Set aspect ratio from user config
-            self.__conf_px_per_ft = config.get_px_per_ft()        # Set pixel per feet from user config
+            self.__conf_px_per_ft = config.get_px_per_ft()   # Set pixel per feet from user config
+            self.__conf_cam_mode = config.get_cam_mode()     # Set camera mode from user config
 
             self.__frame_image = np.zeros((constant.MUXER_OUTPUT_HEIGHT, constant.TILED_OUTPUT_WIDTH, 3), np.uint8)
             self.__black = np.zeros((self.__conf_ar_height, self.__conf_ar_width, 3), np.uint8)
@@ -477,7 +478,6 @@ class Tracker(cc.Calibration):
                 [corner_pts[1][0], corner_pts[1][1]],\
                 [corner_pts[2][0], corner_pts[2][1]],\
                 [corner_pts[3][0], corner_pts[3][1]]])
-                #cc.transformedView(frame_image, pts1, pts2, (AR_WIDTH,AR_HEIGHT))
                 cv2.imshow('Black', black)
 
             # display guide line during calibration process
@@ -633,22 +633,29 @@ class Tracker(cc.Calibration):
             sys.stderr.write(" Unable to create Pipeline \n")
             return False
         if live_camera:
-            print("Creating Source \n ")
-            source = Gst.ElementFactory.make("v4l2src", "usb-cam-source")
-            if not source:
-                sys.stderr.write(" Unable to create Source \n")
-                return False
+            if constant.RPI_CAM_MODE == self.__conf_cam_mode:
+                print("Creating Source \n ")
+                source = Gst.ElementFactory.make("nvarguscamerasrc", "src-elem")
+                if not source:
+                    sys.stderr.write(" Unable to create Source \n")
+                    return False
+            else:
+                print("Creating Source \n ")
+                source = Gst.ElementFactory.make("v4l2src", "usb-cam-source")
+                if not source:
+                    sys.stderr.write(" Unable to create Source \n")
+                    return False
 
-            caps_v4l2src = Gst.ElementFactory.make("capsfilter", "v4l2src_caps")
-            if not caps_v4l2src:
-                sys.stderr.write(" Unable to create v4l2src capsfilter \n")
-                return False
-            print("Creating Video Converter \n")
-            # videoconvert to make sure a superset of raw formats are supported
-            vidconvsrc = Gst.ElementFactory.make("videoconvert", "convertor_src1")
-            if not vidconvsrc:
-                sys.stderr.write(" Unable to create videoconvert \n")
-                return False
+                caps_v4l2src = Gst.ElementFactory.make("capsfilter", "v4l2src_caps")
+                if not caps_v4l2src:
+                    sys.stderr.write(" Unable to create v4l2src capsfilter \n")
+                    return False
+                print("Creating Video Converter \n")
+                # videoconvert to make sure a superset of raw formats are supported
+                vidconvsrc = Gst.ElementFactory.make("videoconvert", "convertor_src1")
+                if not vidconvsrc:
+                    sys.stderr.write(" Unable to create videoconvert \n")
+                    return False
             # nvvideoconvert to convert incoming raw buffers to NVMM Mem (NvBufSurface API)
             nvvidconvsrc = Gst.ElementFactory.make("nvvideoconvert", "convertor_src2")
             if not nvvidconvsrc:
@@ -726,9 +733,12 @@ class Tracker(cc.Calibration):
             return False
         print("Playing file %s " %stream_path)
         if live_camera:
-            caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
+            if constant.RPI_CAM_MODE == self.__conf_cam_mode:
+                source.set_property('bufapi-version', True)
+            else:
+                source.set_property('device', stream_path)
+                caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
             caps_vidconvsrc.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM)"))
-            source.set_property('device', stream_path)
         else:
             source.set_property('location', stream_path)
         streammux.set_property('width', 1920)
@@ -765,8 +775,9 @@ class Tracker(cc.Calibration):
         print("Adding elements to Pipeline \n")
         self.__pipeline.add(source)
         if live_camera:
-            self.__pipeline.add(caps_v4l2src)
-            self.__pipeline.add(vidconvsrc)
+            if constant.RPI_CAM_MODE != self.__conf_cam_mode:
+                self.__pipeline.add(caps_v4l2src)
+                self.__pipeline.add(vidconvsrc)
             self.__pipeline.add(nvvidconvsrc)
             self.__pipeline.add(caps_vidconvsrc)
         else:
@@ -786,9 +797,12 @@ class Tracker(cc.Calibration):
         # nvinfer -> nvvidconv -> nvosd -> video-renderer
         print("Linking elements in the Pipeline \n")
         if live_camera:
-            source.link(caps_v4l2src)
-            caps_v4l2src.link(vidconvsrc)
-            vidconvsrc.link(nvvidconvsrc)
+            if constant.RPI_CAM_MODE == self.__conf_cam_mode:
+                source.link(nvvidconvsrc)
+            else:
+                source.link(caps_v4l2src)
+                caps_v4l2src.link(vidconvsrc)
+                vidconvsrc.link(nvvidconvsrc)
             nvvidconvsrc.link(caps_vidconvsrc)
         else:
             source.link(h264parser)

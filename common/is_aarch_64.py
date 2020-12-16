@@ -20,7 +20,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 DS_PATH='/opt/nvidia/deepstream/deepstream-5.0'
-PY_PATH=DS_PATH+'/sources/python/bindings/'
+PY_PATH=DS_PATH+'/lib/'
 
 import platform
 import sys

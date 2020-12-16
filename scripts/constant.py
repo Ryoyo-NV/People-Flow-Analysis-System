@@ -23,7 +23,7 @@
 #	Azure Cloud account.
 HOST_NAME = "awsjetsonnano.azure-devices.net"
 DEVICE_ID = "jetsonnano"
-SHARED_ACCESS_KEY = "Ls/Ec97qmhkwAcTkz/uOy0cP+vKCO3i2dZh7YrQfBYs="
+SHARED_ACCESS_KEY = "xxxxxxxxxxxxxxx"
 
 ####################################################################################################
 # Mobile Client Setting
@@ -92,6 +92,11 @@ DWELL_AVERAGE_LIMIT = (DWELL_LIMIT * 0.80)
 ####################################################################################################	
 
 # Constants for Tracker
+
+USB_CAM_MODE = 0			# Mode when expected camera to used is connected via USB
+RPI_CAM_MODE = 1			# Mode when expected camera to used is raspberry pi camera
+CAM_MODE = USB_CAM_MODE
+
 
 MAX_DISPLAY_LEN=64
 PGIE_CLASS_ID_PERSON = 0
