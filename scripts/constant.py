@@ -31,8 +31,8 @@ SHARED_ACCESS_KEY = "xxxxxxxxxxxxxxx"
 #[mobile_client_setting]
 
 # MQTT Host (IP Address)
-# - This host is the Jetson Nano's IP address that will be used for mobile client connection
-HOST = "192.168.254.111"
+# - This host is the Jetson's IP address that will be used for mobile client connection
+HOST = "192.168.200.140"
 
 # MQTT Port
 # - This port that will be used for mobile client connection 	

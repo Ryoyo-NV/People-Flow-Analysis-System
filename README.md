@@ -2,7 +2,8 @@
 
 A low-cost People Flow Analysis System developed using NVIDIA's Jetson and Deepstream SDK, integrated with high quality open source software and library.
 
-The system is able to monitor every person within the camera vision. Each person detected will be tracked giving a unique track ID and a green bounding box will be drawn on it. When the detected person stay on the same spot for a certain duration, the system will send a message alert to an authorized Azure Iot Hub and android mobile phone. The message alert constains time, track id and location. 
+
+The system is able to monitor every person within the camera vision. Each person detected will be tracked giving a unique track ID and a green bounding box will be drawn on it. When the detected person stay on the same spot for a certain duration, the system will send a message alert to an authorized Azure Iot Hub and android mobile phone. The message alert contains time, track id and location. 
 
 There is also a calibration process to define the ground surface mapping from the camera view. The calibration input will be set by the user.
 
@@ -13,14 +14,15 @@ There is also a calibration process to define the ground surface mapping from th
 
 - NVIDIA Jetson Platform
 - [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.4
-- USB webcam or 8 MP Pi Camera or Video(.h264 format)
+- USB webcam or 8 MP Raspberry Pi Camera or Video(.h264 format)
 
 Option:
 - 7" 1024x600 capacitive touch monitor
+- Android Phone 
 
 Test on:
 
-- Jetson Xavier nano, JetPack 4.4, Video, and USB webcam. 
+- Jetson Xavier nano, JetPack 4.4, Video, USB webcam, and Android Phone. 
 
 ## Installation
 
@@ -32,11 +34,12 @@ Test on:
 - Mosquitto MQTT Broker
 - Download sample data
 - Download trained model data
+
+Option: 
 - Azure IoT Device
 - Open Distro for ElasticSearch 
 - Open Distro for Kibana 
 - Azure Visual Machine
-
 
 #### 1. Clone this repository 
 ```
@@ -53,7 +56,6 @@ $ sudo ./install.sh
 $ sudo ldconfig
 ```
 See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Quickstart.html#install-the-deepstream-sdk) , and more.  
-
 
 Python Bindings
 ```
@@ -74,29 +76,47 @@ $ pip3 install lap==0.4.0
 ```
 
 #### 4. Download sample data
-Please download the sample data in [Gdrive data link](https://drive.google.com/drive/folders/1FuzkG_qyEnLudL6LgIP9xKrCClFKcsKW)
+Please download the sample data [here](https://drive.google.com/drive/folders/1bgOYw7mffCMoU94Bnbl4IvRxfgyR_Z_D?usp=sharing). (Google Drive link)
 
-#### 5. To install MQTT Client
+#### 5. Download models 
+ Download the models folder from [here](https://drive.google.com/drive/folders/1LBr1fiOOBtGEzRAF3RXIBdOfjg-kgFRT?usp=sharing).
+
+Tree after download models dir:
+```
+<this repo>
+	|- common
+	|- config
+	|- data
+	|- kibana
+	|- models
+		|- peoplenet
+	|- mobile
+	|- scripts
+	|- src
+```
+
+### Option1: Send a message alert to mobile phone
+#### 6. (Option1) To install MQTT Client
 ```
 $ pip3 install paho-mqtt
 ```
 
-#### 6. To install Mosquitto MQTT Broker
+#### 7. (Option1) To install Mosquitto MQTT Broker
 ```
 $ sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
 $ sudo apt update
 $ sudo apt install mosquitto
 ```
 
-#### 7. To install Mobile App  
+#### 8. (Option1) To install Mobile App  
 
 Please access the APK link below in your Android phone and allow to install.
 
-[PFAClientApp-Alpha2.apk](https://drive.google.com/drive/folders/1zAMG0OcnXf-EKDMMqg99PL0fIylpTnp-)
+[PFAClientApp-Alpha2.apk](https://drive.google.com/drive/folders/1qEHUzzTnI7vqAFdPu-gjk2ka0yYUPykv?usp=sharing)
 
 Usage of the mobile application is presented in the [demo video](src/people_flow_analysis_demo.gif). 
 
-#### 8. Mobile Connection Setup
+#### 9. (Option1) Mobile Connection Setup
 1. On Linux terminal, start the mosquitto message broker service
 	```	
 	$ sudo service mosquitto start
@@ -105,46 +125,68 @@ Usage of the mobile application is presented in the [demo video](src/people_flow
 2. Using "PFA Client" mobile application, select to connection button. 
 	Once connection is established, the application is now readdy to receive the message alerts.  
 
+3. Edit the MQTT Host in `config/pfa_config.ini` (which should be line 34)
+	```
+	#Your Jetson IP address 
+	HOST ="<Jetson IP address>"
+	```
+
 Note: 
 1. Stopping the mosquitto message broker service will disable mobile connections to all PFA client applications
 
-```
-$ sudo service mosquitto stop
-```
+	```
+	$ sudo service mosquitto stop
+	```
+
 2. Mobile and Jetson must be connected in the same area network.
 
-#### 9. To install Azure IoT Device 
+### Option2: send a message alert to Azure IoT and Open Distro for Elasticsearch and Kibana
+#### 10. (Option2) To install Azure IoT Device 
 ```
 $ pip3 install azure-iot-device
 ```
 
-#### 10. To install Open Distro for Elasticsearch and Kibana
-Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup details.
-
+#### 11. (Option2) To install Open Distro for Elasticsearch and Kibana
+Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup details.  
  
 ## Usage
 
-## Running the Application
+### 1. Run the command
+#### Using Video(.h264 format) or sample data
 
-People Flow Analysis System is configured to work with DeepStream SDK 5.0 with Python Bindings installation. 
+```
+$ cd script
+$ python3 main.py [VIDEO/FILE/PATH]
+```  
+e.g. python3 main.py ../data/pedestrian2_720p.264 
 
+#### Using USB webcom or Raspberry Pi Camera
+1. Edit the Camera flag in `config/pfa_config.ini` (witch should be line 97):
+```
+#USB webcom (default)
+COM_MODE = 0
 
+#Raspberry Pi Camera
+COM_MODE = 1
+```
 
-3. Download the models folder from the [GDrive link](https://drive.google.com/drive/folders/1ZGrdZd7QUYO3_X3DO7HcEQt4n8VYJ6S-).
+2. Run the command
+```
+$ cd script
+$ python3 main.py
+```
 
-4. Navigate to the application directory and copy the downloaded data folder here.
+### 2. Camera view calibration 
+After run the command, wait for stream to show.
 
-     `$ cd pfasys/`
-   
-5. Run the program.
+1. While streaming, double click 4 corners(top-left, top-right, bottom-left, bottom-right)
 
-	`$ cd pfasys/script`
+2. Then, stream with 2D map view will appear
 
-     `$ python3 main.py <video file path>`
+3. People detection and tracking will be automatically displayed after the calibration process
+ 
 
-     	e.g. $ python3 main.py /home/username/pfasys/data/pedestrian2_720p.264
-
-    NOTE: This system version is tested using video stream file input. 
+Note: Edit the initial configuration setting, your 
 
 
 ## Using the Application
