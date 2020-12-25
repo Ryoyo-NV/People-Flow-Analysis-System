@@ -1,50 +1,83 @@
-# People Flow Analysis System
-# Open-Distro
+# Open Distro for Elasticsearch
 This is for visualizing information gathered by the Azure IoT Hub from the
-Jetson Nano devices. The following documents the installation and setup
-of the Elastic Stack (Logstash, Elasticsearch, Kibana) on the Azure Cloud environment.
+Jetson devices. The following documents the installation and setup
+of the Open Distro for Elasticsearch(Elasticsearch, Kibana) on the Azure VM.
 
 ## Prerequisite
-### Azure IoT Hub resource and IoT device setup
-   1. Go to Azure Portal, type on the search bar "IoT Hub" or click on "IoT Hub".
+
+- Azure IoT Hub
+### Azure IoT Hub resource and IoT Device setup
+
+####  Create IoT Hub
+   1. Go to [Azure Portal](https://portal.azure.com/), type on the search bar "IoT Hub" or click on "IoT Hub".
+
    2. Click the +Add button to add the new IoT hub resource.
+
    3. Fill in the information in the Basics tab.
+
    4. On the "Size and scale" tab, select the desired tier in the `Pricing and scale tier`.
 
       **Note:** F1 tier is the free tier for IoT Hub that only accepts up to 8000 messages/day
    5. Click on the "Review + create" tab and wait until it is accepted, then click the "Create" button.
+
    6. Wait until the deployment is complete, and your newly created IoT Hub resource will be displayed.
-   7. To add your Jetson device in IoT hub resource, select the IoT hub resource and click IoT devices from left pane menu.
-   8. Click the "+New" button and enter the desired device ID, then click "Save" button.
-   9. Select the newly added IoT device, copy the Primary connection String value. 
+   
+   See [Create an IoT hub using the Azure portal](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal#create-an-iot-hub), and more.
+#### Register your Jetson device 
+
+   1. To add your Jetson device in IoT hub resource, select the IoT hub resource and click IoT devices from left pane menu.
+   
+   2. Click the "+New" button and enter the desired device ID, then click "Save" button.
+   
+   3. Select the newly added IoT device, copy the Primary connection String value. 
       This will serve as the connection string for the IoT device to send messages to Azure IoT hub.
+   
+   See [Register a new device in the IoT hub](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal#register-a-new-device-in-the-iot-hub), and more.
 
-   **References:**
-   * Create IoT Hub: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-create-through-portal
-   * Connect IoT device to Azure IoT Hub: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-raspberry-pi-kit-node-get-started
-
+   4. Edit `config/pfa_config.ini`, paste the coped Primary connection String value as follow:
+     
+   ```
+   #HOST_NAME = <iot hub hostname>
+   #DEVICE_ID = <iot device id>
+   #SHARED_ACCESS_KEY = <iot device shared access key>
+   ```
 
 ## Installation
-### A. Virtual Machine on Azure
+
+### Requirement:
+
+- Azure Virtual Machine 
+
+  - Dcoker  
+  - docker-compose
+  - [Open Distro for Elasticsearch](https://opendistro.github.io/for-elasticsearch/)
+  - Open Distro for Kibana
+  - logstash 
+
+Note: 
+- Creating Virtual Machines in Azure is **not free**.
+- Open Distro for Elasticsearch can on-premise using [Docker image](https://opendistro.github.io/for-elasticsearch-docs/docs/install/docker/).
+
+### Virtual Machine on Azure
 **Note:** Creating virtual machines in Azure is not free. 
 
    1. From the Azure Portal, go to the **Marketplace**.
    2. Search for **Virtual Machine**. Then click the **Add** button.
-   3. Fill-in the required information for the following tabs,
+   3. Fill-in the required information for the following tabs: 
 
 		**Basics**
 		
-			a.Select available subscription
-			b.Create a new resource group and enter your desired resource group
-			c.Enter virtual machine name
-			d.Set the region for deployment (Japan West)
-			e.Set Availability options to “No infrastructure redundancy required”
-			f.Set image to Ubuntu Server 18.04 LTS Gen 1
-			g.Set size your desired RAM size
-				Note: We recommend allowing Docker to use at least 4 GB of RAM
-			h.Set authentication type to “Password”
-			i.Enter username and password
-			j.Set inbound ports to SSH (22)
+			a. Select available subscription
+			b. Create a new resource group and enter your desired resource group
+			c. Enter virtual machine name
+			d. Set the region for deployment (Japan West etc.)
+			e. Set Availability options to “No infrastructure redundancy required”
+			f. Set image to Ubuntu Server 18.04 LTS Gen 1
+			g. Set size your desired RAM size
+				 Note: We recommend allowing Docker to use at least 4 GB of RAM
+			h. Set authentication type to “Password”
+			i. Enter username and password
+			j. Set inbound ports to SSH (22)
 
 		**Disks**
 		
@@ -59,92 +92,111 @@ of the Elastic Stack (Logstash, Elasticsearch, Kibana) on the Azure Cloud enviro
 
 	 	**Management**
 		
-			a.Disable Boot Diagnostics
-			b.Set OS guest diagnostics to Off
-			c.Set System assigned managed identity to Off
-			d.Set Enable backup to Off
+			a. Disable Boot Diagnostics
+			b. Set OS guest diagnostics to Off
+			c. Set System assigned managed identity to Off
+			d. Set Enable backup to Off
 
    4. Click Review and Create to see the summary
-   5. Click Create to create VM
-   6. Go to the newly create VM
-   7. Go to networking
-   8. Click Add inbound port rule
-   9. Change Destination port ranges to 5601
-   10. Change Priority to 110
-   11. Enter desired Name
-   12. Click Add
 
-### B. Docker and docker-compose Installation
-1. Go to cloudshell in azure portal
-2. Enter the VM
+   5. Click Create to create VM
+   
+   6. Go to the newly create VM
+#### Add inbound port rule   
+
+   1. Go to networking
+   
+   2. Click Add inbound port rule
+   
+   3. Change Destination port ranges to 5601
+   
+   4. Change Priority to 110
+   
+   5. Enter desired Name
+   
+   6. Click Add
+
+### Docker and docker-compose installation and setup
+
+1. ssh to the VM
+
 ```
 $ ssh <username>@<ip address of vm>
 ```
-3. Enter password of VM
-4. Docker installation command
+2. Enter password of VM
+
+#### 3. To install  Docker
+
 ```
 $ sudo apt update
 $ sudo apt install apt-transport-https ca-certificates curl software-properties-common
-$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-$ sudo add-apt-repository “deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable”
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
 $ sudo apt update
 $ sudo apt install docker-ce
 $ sudo systemctl status docker
 ```
-5. Docker compose installation command
+
+#### 4. To install docker-compose
+
 ```
 $ sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 $ sudo chmod +x /usr/local/bin/docker-compose
 $ sudo docker-compose --version
 ```
-6. Check docker version to know if docker is running
+
+Check docker version to know if docker is running
+
 ```
 $ sudo docker --version
 ```
-7. Pull docker image for Open-Distro for Elasticsearch and Kibana
+
+#### 5. Pull docker image
+
 ```
+#Open-Distro for Elasticsearch and Kibana
 $ sudo docker pull amazon/opendistro-for-elasticsearch:1.10.1
 $ sudo docker pull amazon/opendistro-for-elasticsearch-kibana:1.10.1
-```
-8. Pull logstash oss
-```
+
+#logstash oss
 $ sudo docker pull docker.elastic.co/logstash/logstash-oss:7.9.1
 $ sudo docker images
 ```
-9. Run the image
+
+#### 6. Create custom docker-compose.yml 
+Create custom docker-compose.yml file inside open-distro folder
+
 ```
-$ sudo docker run -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" amazon/opendistro-for-elasticsearch:1.10.1
-```
-10. Create custom docker-compose.yml file inside open-distro folder
-```
-$ cd /
-$ cd home
+$ cd /home
 $ sudo mkdir open-distro
 $ cd open-distro
 $ sudo touch docker-compose.yml
-$ sudo nano docker-compose.yml
+$ sudo vim docker-compose.yml
 ```
-   *See docker-compose.yml as reference*
+   *See [docker-compose.yml](config/docker-compose.yml) as reference*
    
-11. Create custom logstash.conf inside open-distro folder. Go to directory /home/open-distro 
+#### 7. Create custom logstah.conf
+Create custom logstash.conf inside open-distro folder.
 ```
+$ cd /home/open-distro
 $ sudo touch logstash.conf
-$ sudo nano logstash.conf
+$ sudo vim logstash.conf
 ```
 
 **Change event_hub_connections**
 
-a. Retrieve the connection string endpoint by accessing the **Azure IoT Hub > Built-in endpoints.**
+1. Retrieve the connection string endpoint by accessing the **Azure IoT Hub > Built-in endpoints.**
 
-b. Under the **Event Hub compatible endpoint** section, set the shared access policy to **service**.
+2. Under the **Event Hub compatible endpoint** section, set the shared access policy to **service**.
 
-c. Copy the value shown in** Event Hub-compatible endpoint.**
+3. Copy the value shown in** Event Hub-compatible endpoint.**
 
-d. Paste the copied connection string endpoint to the **event_hub_connections** in **logstash.conf** file.
+4. Paste the copied connection string endpoint to the **event_hub_connections** in **logstash.conf** file.
 
-   *See logstash.conf as reference*
+   *See [logstash.conf](config/logstash.conf) as reference*  
+   See [Read from the built-in endpoint](https://docs.microsoft.com/ja-jp/azure/iot-hub/iot-hub-devguide-messages-read-builtin#read-from-the-built-in-endpoint), and more.
 
-### C. Run Open Distro for Elasticsearch
+## Run Open Distro for Elasticsearch
 ```
 $ sudo add-apt-repository ppa:openjdk-r/ppa
 $ sudo apt update
@@ -161,12 +213,12 @@ $ sudo apt install opendistroforelasticsearch-kibana
 
 1. Edit custom kibana.yml 
 Go to directory etc/kibana/
-Use elasticsearch.hosts: ELASTICSEARCH_HOSTS  instead of elasticsearch.url
-   *See kibana.yml as reference*
+Use elasticsearch.hosts: ELASTICSEARCH_HOSTS  instead of elasticsearch.url  
+   *See [kibana.yml](config/kibana.yml) as reference*
 
 2. Run, Elasticsearch, Kibana and Logstash containers
-Go to /home/open-distro directory
 ```
+$ cd /home/open-distro
 $ sudo docker-compose up
 ```
 
@@ -183,7 +235,7 @@ $ sudo docker-compose up
 ### Starting containers
 1. Start the Elasticsearch, Kibana, and Logstash containers.
 ```
-$sudo docker-compose start
+$ sudo docker-compose start
 ```
 2. Make sure the Elasticsearch, Kibana, and Logstash containers are up and running.
 ``` 
@@ -217,7 +269,22 @@ $ sudo systemctl status elasticsearch.service
 $ sudo systemctl status kibana.service
 ```
 
-### Creating Indexes
+8. Access the Kibana 
+After starting Kibana, you can access it at port 5601.
+```
+http://<ip address of VM>:5601 
+```
+9. login the Kibana
+```
+username: admin
+password: admin
+```
+
+---
+
+## Create visualization and Dashboard
+
+### 1. Creating Indexes
    1. On the menu, click **Stack Management** under Management.
    2. Click **Index Patterns.**
    3. Click **Create Index Pattern.**
@@ -226,7 +293,7 @@ $ sudo systemctl status kibana.service
    6. The next page shows the list of fields of the selected indexes.
    
    
-### Creating Visualizations
+### 2. Creating Visualizations
 **Dweller Count**
 1. On the menu, click **Visualize.**
 2. Click the **Create visualization** button.
@@ -266,7 +333,7 @@ $ sudo systemctl status kibana.service
 10. Click the **Save** button.
 11. Set the Title for the visualization to **Dweller Count Year Overview**. Optionally, you can enter the description for the visualization. Then click the **Save** button.
 
-### Creating Dashboard
+### 3. Creating Dashboard
 1. On the menu, click **Dashboard.**
 2. Click the **Create Dashboard** button.
 3. Click **Add** link.
@@ -287,7 +354,7 @@ $ sudo systemctl status kibana.service
 18. Click on the **Store time with dashboard.**
 19. Click the **Save** button. 
 
-### Advanced Settings
+### 4. Advanced Settings
 1.On the menu, click Stack Management.
 2.Click Advanced Settings.
 3.Look for Scaled date format.

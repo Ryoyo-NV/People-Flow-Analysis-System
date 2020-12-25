@@ -116,7 +116,7 @@ Please access the APK link below in your Android phone and allow to install.
 
 Usage of the mobile application is presented in the [demo video](src/people_flow_analysis_demo.gif). 
 
-#### 9. (Option1) Mobile Connection Setup
+### (Option1) Mobile Connection Setup
 1. On Linux terminal, start the mosquitto message broker service
 	```	
 	$ sudo service mosquitto start
@@ -141,12 +141,12 @@ Note:
 2. Mobile and Jetson must be connected in the same area network.
 
 ### Option2: send a message alert to Azure IoT and Open Distro for Elasticsearch and Kibana
-#### 10. (Option2) To install Azure IoT Device 
+#### 1. (Option2) To install Azure IoT Device 
 ```
 $ pip3 install azure-iot-device
 ```
 
-#### 11. (Option2) To install Open Distro for Elasticsearch and Kibana
+#### 2. (Option2) To install Open Distro for Elasticsearch and Kibana
 Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup details.  
  
 ## Usage
@@ -157,9 +157,10 @@ Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup
 ```
 $ cd script
 $ python3 main.py [VIDEO/FILE/PATH]
-```  
-e.g. python3 main.py ../data/pedestrian2_720p.264 
 
+#Use sample data
+$ python3 main.py ../data/pedestrian2_720p.264
+```  
 #### Using USB webcom or Raspberry Pi Camera
 1. Edit the Camera flag in `config/pfa_config.ini` (witch should be line 97):
 ```
@@ -185,50 +186,29 @@ After run the command, wait for stream to show.
 
 3. People detection and tracking will be automatically displayed after the calibration process
  
+Note: Edit the `config/pfa_config.ini` of initial configuration setting as you wish. The settings for the following are included in the file:
 
-Note: Edit the initial configuration setting, your 
+- IOT Hub Client Setting
+- Mobile Client Setting
+- Aspect Ratio
+- Pixel dimension per feet (Grid Size)
+- Dwell Time limitation (in second) for alert
+- Dwell Time Average limitation for alert
 
+#### 3. (Option1) Start mosquitto message broker service to enable alert notification to Mobile application
 
-## Using the Application
+```
+$ sudo service mosquitto start
+```
 
-**Initial configuration settings**
-1. Edit the 'pfa_config.ini' file located in the path below. 
+#### 4. (Option2) Connect to the internet to enable alert notification to Azure IoT hub -> Open Dstro for Kibana.
 
-	`$ gedit pfasys/config/pfa_config.ini`
-
-	Instruction on the needed intial configuration settings for the following are included in the file.
-
-		- IOT Hub Client Setting
-		- Mobile Client Setting
-		- Aspect Ratio
-		- Pixel dimension per feet (Grid Size)
-		- Dwell Time limitation (in second) for alert
-		- Dwell Time Average limitation for alert
-
-
-2. (OPTIONAL) Start mosquitto message broker service to enable alert notification to Mobile application
-
-	`$ sudo service mosquitto start
-
-3. (OPTIONAL) Connect to the internet to enable alert notification to Azure IoThub -> Kibana.
+##  Data analysis and visualization
+Data analysis and visualization with Open Distro for Kibana.  
+After access and login the Open Distro for Kibana, create Visualization and Dashboard.
+Refer to the [README guide](kibana/README.md#Create-visualization-and-Dashboard) in kibana directory for the creating visualization details.
 
 
-**A. Camera View Calibration**
-1. Run 'python3 main.py'
-2. Wait for stream to show
-3. While streaming, double click 4 corners(top-left, top-right, bottom-left, bottom-right)
-4. Then, stream with 2D map view will appear
-5. People detection and tracking will be automatically displayed after the calibration process
-
-    NOTE: To redo the calibration, please delete the 'pfasys/config/calibration_config.txt' file.
-
-
-**B. People detection and tracking**
-
-	Video stream automatically displayed when the program starts once calibration is already done.
-
-
-**C. Quit/Terminate program**
-
-    Press "q" in video stream window.
-
+## Licenses
+Copyright (C) 2020, Ryoyo-NV All rights reserved.  
+The models and sample data are available for research, development, and PoC purposes only.
