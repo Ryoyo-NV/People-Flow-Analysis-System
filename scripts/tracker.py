@@ -25,11 +25,7 @@
 #pylint: disable=wrong-import-position
 import sys
 import os
-from os import path
 sys.path.append('../')
-import platform
-import configparser
-from threading import Thread
 import time
 import math
 import gi
@@ -41,12 +37,9 @@ from common.is_aarch_64 import is_aarch64
 from common.bus_call import bus_call
 import camera_calibration as cc
 import dwell_time_checker as dt
-import message_manager as mm
+import tracker_sort as t_sort
 import pyds
 import constant
-
-from sort import *
-import json
 
 class Tracker(cc.Calibration):
 #class Tracker(cc.Calibration):
@@ -81,23 +74,23 @@ class Tracker(cc.Calibration):
     __message_manager = None         # Holds the instance of class MessageManager
     __obj_confidence = []            # Holds detected object confidence per frame
     __names = []                     # Holds list of name per frame
-    __bounding_boxes = []            # Holds list of bounding boxes per frame
+    __t_sort = None                  # Holds the instance of class TrackerSort
 
     # define image variables for display
     __pts1 = None                    # points 1, hold mouse-clicked points
     __pts2 = None                    # points 2, hold points with from variable aspect ratio
     __corner_pts = None              # corner points coordinate
     __corner_point_index = 0         # corner points index
-    __cx = 0                         # centroid x data 
+    __cx = 0                         # centroid x data
     __cy = 0                         # centroid y data
     __cx_2d = 0                      # 2d x data
     __cy_2d = 0                      # 2d y data
     __calibrated_flag = False        # flag to know if calibration process is already executed
- 
+
     __image_flag = []                # When image need to be saved
 
     __pgie_classes_str = ["Person", "Bag", "Face"]
-    __sort_tracker = Sort()          # create SORT object
+    __flag = constant.TRK_STATE_NONE # Tracking state initial value
 
     def __init__(self, message_manager):
         if self.__tracker is None:
@@ -106,13 +99,14 @@ class Tracker(cc.Calibration):
             # Set user configuration class instance
             config = message_manager.getUserConfig()
 
-            self.__conf_ar_width = config.get_ar_width()     # Set aspect ratio width from user config
-            self.__conf_ar_height = config.get_ar_height()   # Set aspect ratio height from user config
-            self.__conf_ar = config.get_aspect_ratio()       # Set aspect ratio from user config
-            self.__conf_px_per_ft = config.get_px_per_ft()   # Set pixel per feet from user config
-            self.__conf_cam_mode = config.get_cam_mode()     # Set camera mode from user config
+            self.__conf_ar_width = config.get_ar_width()     # Aspect ratio width from user config
+            self.__conf_ar_height = config.get_ar_height()   # Aspect ratio height from user config
+            self.__conf_ar = config.get_aspect_ratio()       # Aspect ratio from user config
+            self.__conf_px_per_ft = config.get_px_per_ft()   # Pixel per feet from user config
+            self.__conf_cam_mode = config.get_cam_mode()     # Camera mode from user config
 
-            self.__frame_image = np.zeros((constant.MUXER_OUTPUT_HEIGHT, constant.TILED_OUTPUT_WIDTH, 3), np.uint8)
+            self.__frame_image = np.zeros((constant.MUXER_OUTPUT_HEIGHT, \
+                constant.TILED_OUTPUT_WIDTH, 3), np.uint8)
             self.__black = np.zeros((self.__conf_ar_height, self.__conf_ar_width, 3), np.uint8)
             self.__img = np.zeros((self.__conf_ar_height, self.__conf_ar_width, 3), np.uint8)
             self.__output_img = np.zeros((self.__conf_ar_height, self.__conf_ar_width, 3), np.uint8)
@@ -129,6 +123,9 @@ class Tracker(cc.Calibration):
 
             # corner points coordinate
             self.__corner_pts = [(0, 0), (0, 0), (0, 0), (0, 0)]
+
+            # get instance of the tracker sort class
+            self.__t_sort = t_sort.TrackerSort()
 
         return self.__tracker
 
@@ -185,9 +182,9 @@ class Tracker(cc.Calibration):
                 except StopIteration:
                     break
                 obj_counter[obj_meta.class_id] += 1
-                # Periodically check for objects with borderline confidence value that may be false positive detections.
-                # If such detections are found, annoate the frame with bboxes and confidence value.
-                # Save the annotated frame to file.
+                # Periodically check for objects with borderline confidence value that may be false
+                # positive detections. If such detections are found, annoate the frame with bboxes
+                # and confidence value. Save the annotated frame to file.
                 if is_first_obj:
                     is_first_obj = False
                     # Getting Image data using nvbufsurface
@@ -200,7 +197,8 @@ class Tracker(cc.Calibration):
                     self.__img = cv2.cvtColor(self.__frame_image, cv2.COLOR_BGRA2BGR)
                 save_image = True
                 if obj_meta.class_id == constant.PGIE_CLASS_ID_PERSON:
-                    self.__append_object(obj_meta, obj_meta.confidence)
+                    # Update tracker sort
+                    self.__t_sort.update(obj_meta)
                 try:
                     l_obj = l_obj.next
                 except StopIteration:
@@ -212,23 +210,15 @@ class Tracker(cc.Calibration):
             if self.__calibrated_flag:
                 self.__img = self.draw_grid_in_cam(self.__img, self.__conf_px_per_ft)
 
-            # process only if bounding box has value
-            track_bbs_ids = []
-            if 0 < len(self.__bounding_boxes):
-
-                track_bbs_ids = self.__sort_tracker.update(np.array(self.__bounding_boxes))
-
-            tb = time.time()
+            # Get tracked bounding boxes with corresponding track id
+            track_bbs_ids = self.__t_sort.get_tracked_list()
 
             # Process each tracked object
-            for tracked_bbox_id in track_bbs_ids:
-                bbox = tracked_bbox_id[:4]
-                class_name = "Person"
-                track_id = tracked_bbox_id[4]
+            for track_id, bbox in track_bbs_ids:
 
                 # Reset alert of a track id
                 self.__reset_alert(track_id, int(bbox[0]), int(bbox[1]),\
-                     int(bbox[2]), int(bbox[3]))
+                    int(bbox[2]), int(bbox[3]))
 
                 # Check if an object has alert from dwell time checker
                 alert_on_flag = self.__dwell_time_checker.get_alert_flag(track_id)
@@ -247,9 +237,10 @@ class Tracker(cc.Calibration):
                     color = (0, 0, 200)
                 # Draw bounding box
                 cv2.rectangle(self.__img, (int(bbox[0]), int(bbox[1])),\
-                 (int(bbox[2]), int(bbox[3])), color, 1)
+                 (int(bbox[2]), int(bbox[3])), color, 2)
                 cv2.putText(self.__img, str(int(track_id)),\
-                 (int(bbox[0]), int(bbox[1]-10)), 0, 0.5, (255, 255, 255), 1)
+                 (int(bbox[0]), int(bbox[1]-10)), 0, 0.5, (0, 150, 255), 2)
+
                 #check if old buffer has value
                 if self.__old_id_loc_buffer is not []:
                     # flag to check if detected object is previously existing
@@ -279,8 +270,8 @@ class Tracker(cc.Calibration):
             # Get final processing image for display
             self.__output_img = self.__img
 
-            # Clear for next frame tracker processing
-            self.__bounding_boxes = []
+            # No update monitoring for all tracking
+            self.__t_sort.no_update_checker()
 
             # Clear reset alert flag
             # This is set just in case reset alert failed or no matching coordinates
@@ -310,25 +301,15 @@ class Tracker(cc.Calibration):
                 self.__dwell_time_checker.input(self.__id_grid_loc_buffer)
                 self.__id_grid_loc_buffer.clear()
                 print("FRAME " + str(self.__cntr) + "===============")
+
+            # Set tracking state ready for display
+            self.__flag = constant.TRK_STATE_DISP
+
             try:
                 l_frame = l_frame.next
             except StopIteration:
                 break
         return Gst.PadProbeReturn.OK
-
-    #Function name: __append_object
-    #Desription: List important info from each object in a frame for deepsort tracker
-    #Parameter: object meta and confidence
-    #Return: None
-    def __append_object(self, obj_meta, confidence):
-        """List important info from each object in a frame for deepsort tracker"""
-        confidence = '{0:.2f}'.format(confidence)
-        rect_params = obj_meta.rect_params
-        top = int(rect_params.top)
-        left = int(rect_params.left)
-        width = int(rect_params.width)
-        height = int(rect_params.height)
-        self.__bounding_boxes.append([left, top, left+width, top+height])
 
     #Function name: draw_2d_points
     #Desription: Draw 2d map and points
@@ -448,19 +429,6 @@ class Tracker(cc.Calibration):
                 self.__reset_alert_coor = x, y
                 # Set alert reset flag to True
                 self.__reset_alert_flag = True
-       
-    #Function name: get_img_show_vars
-    #Desription: Get necessary variables for display
-    #Parameter: None
-    #Return: __output_img, __black, __corner_pts, __cx, __cy, __corner_point_index
-    def get_img_show_vars(self):
-        """return variable for streaming"""
-        return self.__output_img,\
-            self.__black,\
-            self.__corner_pts,\
-            self.__cx,\
-            self.__cy,\
-            self.__corner_point_index
 
     #Function name: image_show
     #Desription: Display streams
@@ -469,19 +437,47 @@ class Tracker(cc.Calibration):
     def image_show(self, pipeline):
         """Display streams"""
         cv2.namedWindow('Frame')
+        cv2.moveWindow('Frame', 0, 30)
         cv2.setMouseCallback('Frame', self.get_points)
+
+        # Keep alive for output display
         while True:
-            frame_image, black, corner_pts, cx, cy, corner_point_index = self.get_img_show_vars()
+
+            # Update screen display if the tracking state is not idle
+            if self.__flag == constant.TRK_STATE_IDLE:
+
+                # Get pipeline bus
+                bus = pipeline.get_bus()
+                # Get message status
+                msg = bus.peek()
+                # msg is not None and msg type is stream status
+                if msg and msg.type == Gst.MessageType.STREAM_STATUS:
+                    # Get stream status type
+                    stream_stat_type, _ = msg.parse_stream_status()
+                    # If the stream status type is leave, exit loop
+                    if stream_stat_type == Gst.StreamStatusType.LEAVE:
+                        break
+                # Do nothing since tracking state is idle
+                continue
+            else:
+                # Change the tracking state to idle
+                self.__flag = constant.TRK_STATE_IDLE
+
+            # get image for display
+            frame_image = self.__output_img
+
             if self.__calibrated_flag:
                 self.__pts1 = np.float32([\
-                [corner_pts[0][0], corner_pts[0][1]],\
-                [corner_pts[1][0], corner_pts[1][1]],\
-                [corner_pts[2][0], corner_pts[2][1]],\
-                [corner_pts[3][0], corner_pts[3][1]]])
-                cv2.imshow('Black', black)
+                [self.__corner_pts[0][0], self.__corner_pts[0][1]],\
+                [self.__corner_pts[1][0], self.__corner_pts[1][1]],\
+                [self.__corner_pts[2][0], self.__corner_pts[2][1]],\
+                [self.__corner_pts[3][0], self.__corner_pts[3][1]]])
+                cv2.namedWindow('Black')
+                cv2.moveWindow('Black', 768, 30) 
+                cv2.imshow('Black', self.__black)
 
             # display guide line during calibration process
-            frame_image = self.draw_frame(frame_image, corner_pts)
+            frame_image = self.draw_frame(frame_image, self.__corner_pts)
 
             # display the detection and trackng video window
             cv2.imshow('Frame', frame_image)
@@ -494,6 +490,7 @@ class Tracker(cc.Calibration):
         cv2.destroyAllWindows()
         pipeline.set_state(Gst.State.NULL)
         os._exit(0)
+        os.killpg()
 
     #Function name: __reset_alert
     #Desription: Reset alert of a track id
@@ -608,7 +605,10 @@ class Tracker(cc.Calibration):
 
         return result
 
-
+    #Function name: start_tracker
+    #Desription: Deepstream function for detection and tracking
+    #Parameter: args
+    #Return: None
     def start_tracker(self, args):
         """Deepstream function for detection and tracking"""
         # Check input arguments
@@ -618,7 +618,6 @@ class Tracker(cc.Calibration):
         elif len(args) >= 2:
             live_camera = False
             stream_path = args[1]
-        #stream_path = "/home/awsol/Downloads/topview_many_people_detected.mp4"
 
         number_sources = 1
         # Standard GStreamer initialization
@@ -696,6 +695,13 @@ class Tracker(cc.Calibration):
         if not pgie:
             sys.stderr.write(" Unable to create pgie \n")
             return False
+
+        # Use nv-tracker to keep track of the detected objects 
+        tracker = Gst.ElementFactory.make("nvtracker","NV-Tracker")
+        if not tracker:
+           sys.stderr.write(" Unable to create tracker \n")
+           return False
+
         # Add nvvidconv1 and filter1 to convert the frames to RGBA
         # which is easier to work with in Python.
         print("Creating nvvidconv1 \n ")
@@ -769,9 +775,16 @@ class Tracker(cc.Calibration):
             sink.set_property("sync", 0)
         ########################################################################
 
-        #Set properties of pgie
+        #Set nv-tracker properties
         pgie.set_property('config-file-path', constant.DSTEST2_PGIE_CONFIG)
-        
+        tracker.set_property('ll-lib-file', \
+            '/opt/nvidia/deepstream/deepstream-5.0/lib/libnvds_nvdcf.so')
+        tracker.set_property('tracker-width', (21 * 32))
+        tracker.set_property('tracker-height', (12 * 32))
+        tracker.set_property('enable-past-frame', 1)
+        tracker.set_property('enable-batch-process', 1)
+        tracker.set_property('ll-config-file', '../config/tracker_config.yml')
+
         print("Adding elements to Pipeline \n")
         self.__pipeline.add(source)
         if live_camera:
@@ -785,6 +798,7 @@ class Tracker(cc.Calibration):
             self.__pipeline.add(decoder)
         self.__pipeline.add(streammux)
         self.__pipeline.add(pgie)
+        self.__pipeline.add(tracker)
         self.__pipeline.add(tiler)
         self.__pipeline.add(nvvidconv)
         self.__pipeline.add(filter1)
@@ -819,7 +833,8 @@ class Tracker(cc.Calibration):
             sys.stderr.write(" Unable to get source pad of decoder \n")
         srcpad.link(sinkpad)
         streammux.link(pgie)
-        pgie.link(nvvidconv1)
+        pgie.link(tracker)
+        tracker.link(nvvidconv1)
         nvvidconv1.link(filter1)
         filter1.link(tiler)
         tiler.link(nvvidconv)

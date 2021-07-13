@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import logging
 from azure.iot.device import IoTHubDeviceClient, Message
-from azure.iot.device.exceptions import CredentialError, ConnectionFailedError, ConnectionDroppedError, ClientError
+from azure.iot.device.exceptions import CredentialError, ConnectionFailedError,\
+    ConnectionDroppedError, ClientError
 
 import paho.mqtt.client as mqtt
 import config
@@ -19,6 +20,11 @@ class MessageSender:
         self.__conf_mobile_conn_host = config.get_mobile_conn_host()
         self.__conf_mobile_conn_port = config.get_mobile_conn_port()
 
+        # Establish mqtt client connection
+        self.mobile_client = mqtt.Client()
+        # Reset mqtt client state
+        self.mobile_client.reinitialise()
+
     #function __iothub_client_init
     #Desctription: create a client from the specified connection string
     #Return value: result
@@ -26,7 +32,8 @@ class MessageSender:
         """create an iot hub client"""
         try:
             #create client from connection string
-            client = IoTHubDeviceClient.create_from_connection_string(self.__conf_iothub_connection_str)
+            client = IoTHubDeviceClient.create_from_connection_string(\
+                self.__conf_iothub_connection_str)
             
         except Exception as ex:
             print("Unexpected error in connecting to client{0}".format(ex))
@@ -110,8 +117,8 @@ class MessageSender:
 
         global image_value      #holds the current frame image value in bytes
 
-        #Establishing mobile mqtt connection
-        client = mqtt.Client()
+        # Mobile mqtt connection
+        client = self.mobile_client
 
         try:
             # Timeout for image saving time
@@ -156,6 +163,3 @@ class MessageSender:
 
         global image_value
         image_value = value
-
-
-

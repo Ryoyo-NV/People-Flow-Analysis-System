@@ -1,4 +1,4 @@
-
+"""Module: Constant"""
 ####################################################################################################
 ##################################### User Configurtion ############################################
 ####################################################################################################
@@ -12,10 +12,10 @@
 #    '=' operator. Do not put any trailing after value like comment, spaces, etc.
 # 6. Save the file when your done.
 ####################################################################################################
-####################################################################################################	
+####################################################################################################
 ####################################################################################################
 # IOT Hub Client Setting
-# - This group will be used for IOT Hub client connection	
+# - This group will be used for IOT Hub client connection
 #[iot_hub_client_setting]
 
 # IOT Hub Client connection string
@@ -23,19 +23,19 @@
 #	Azure Cloud account.
 HOST_NAME = "awsjetsonnano.azure-devices.net"
 DEVICE_ID = "jetsonnano"
-SHARED_ACCESS_KEY = "xxxxxxxxxxxxxxx"
+SHARED_ACCESS_KEY = "xxxxxxxx"
 
 ####################################################################################################
 # Mobile Client Setting
-# - This group will be used for Mobile client connection	
+# - This group will be used for Mobile client connection
 #[mobile_client_setting]
 
 # MQTT Host (IP Address)
 # - This host is the Jetson's IP address that will be used for mobile client connection
-HOST = "192.168.200.140"
+HOST = "192.168.254.111"
 
 # MQTT Port
-# - This port that will be used for mobile client connection 	
+# - This port that will be used for mobile client connection
 PORT = 1883
 
 ####################################################################################################
@@ -59,7 +59,7 @@ PIXEL_PER_FEET = 40
 
 ####################################################################################################
 # Alert Setting
-# - This group will be used for dwell time computation and checking for dwell time limitation	
+# - This group will be used for dwell time computation and checking for dwell time limitation
 #[alert_setting]
 
 # Dwell Time limitation (in second)
@@ -87,9 +87,9 @@ DWELL_LIMIT = 5
 # - When alert is raised, alert message will be sent to IOT Hub and mobile application.
 DWELL_AVERAGE_LIMIT = (DWELL_LIMIT * 0.80)
 
-####################################################################################################	
-####################################################################################################	
-####################################################################################################	
+####################################################################################################
+####################################################################################################
+####################################################################################################
 
 # Constants for Tracker
 
@@ -130,8 +130,7 @@ PGIE_CLASSES_STR= ["Person", "Bag", "Face"]
 DIR_NAME = '../tmp'
 
 DSTEST2_PGIE_CONFIG = "../config/config_infer_primary_peoplenet.txt"
-#DSTEST2_PGIE_CONFIG = "../config/dstest2_pgie_config_yolo.txt"
-DSTEST2_TRACKER_CONFIG = '../config/dstest2_tracker_config.txt'
+DSTEST2_TRACKER_CONFIG = '../config/tracker_config.yml'
 
 #frame per second estimate
 FPS_CNT = 20
@@ -202,5 +201,9 @@ CONN_STAT_BG_PT2 = (190, 28)		# Connection status background X + Width and Y + H
 CONN_STAT_BG_PT3 = (190, 18)		# Connection status background X + Width and Y + Height
 CONN_STAT_FONT_SIZE = 0.35			# Conection status font size
 
-
-
+#######################################
+# Tracker state
+#######################################
+TRK_STATE_NONE = 0			# Tracking state initial value
+TRK_STATE_IDLE = 1          # Tracking state when idle
+TRK_STATE_DISP = 2			# Tracking state to update display

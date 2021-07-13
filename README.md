@@ -22,14 +22,13 @@ Option:
 
 Test on:
 
-- Jetson Xavier nano, JetPack 4.4, Video, USB webcam, and Android Phone. 
+- Jetson Xavier, nano, JetPack 4.4, Video, USB webcam, and Android Phone. 
 
 ## Installation
 
 ### Requirements:
 
 - [NVIDIA DeepStream](https://developer.nvidia.com/deepstream-sdk) 5.0
-- SORT dependencies (filterpy,scikit-image,lap)
 - MQTT Client
 - Mosquitto MQTT Broker
 - Download sample data
@@ -39,7 +38,7 @@ Option:
 - Azure IoT Device
 - Open Distro for ElasticSearch 
 - Open Distro for Kibana 
-- Azure Visual Machine
+- Azure Virtual Machine
 
 #### 1. Clone this repository 
 ```
@@ -66,20 +65,11 @@ $ sudo python3 setup.py install
 See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Python_Sample_Apps.html#metadata-access) , and more.
 
 
-#### 3. To install SORT 
+#### 3. Download sample data
+Please download the sample data [here](https://drive.google.com/drive/folders/1YnxqMk-S5a3rMu-o41HBxX60h9rVc5m8?usp=sharing). (Google Drive link)
 
-```
-$ sudo apt install liblapack-dev libblas-dev gfortran 
-$ sudo pip3 install filterpy==1.4.5
-$ pip3 install scikit-image==0.17.2
-$ pip3 install lap==0.4.0
-```
-
-#### 4. Download sample data
-Please download the sample data [here](https://drive.google.com/drive/folders/1bgOYw7mffCMoU94Bnbl4IvRxfgyR_Z_D?usp=sharing). (Google Drive link)
-
-#### 5. Download models 
- Download the models folder from [here](https://drive.google.com/drive/folders/1LBr1fiOOBtGEzRAF3RXIBdOfjg-kgFRT?usp=sharing).
+#### 4. Download models 
+ Download the models dir from [here](https://drive.google.com/drive/folders/1LBr1fiOOBtGEzRAF3RXIBdOfjg-kgFRT?usp=sharing). (Google Drive link)
 
 Tree after download models dir:
 ```
@@ -89,7 +79,7 @@ Tree after download models dir:
 	|- data
 	|- kibana
 	|- models
-		|- peoplenet
+		|- peoplenet (in 4 files)
 	|- mobile
 	|- scripts
 	|- src
