@@ -141,6 +141,12 @@ Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup
  
 ## Usage
 
+#### 1. (Option1) Start mosquitto message broker service to enable alert notification to Mobile application
+
+```
+$ sudo service mosquitto start
+```
+
 ### 1. Run the command
 #### Using Video(.h264 format) or sample data
 
@@ -185,18 +191,16 @@ Note: Edit the `config/pfa_config.ini` of initial configuration setting as you w
 - Dwell Time limitation (in second) for alert
 - Dwell Time Average limitation for alert
 
-#### 3. (Option1) Start mosquitto message broker service to enable alert notification to Mobile application
+#### 3. (Option2) Connect to the internet to enable alert notification to Azure IoT hub -> Open Dstro for Kibana.
 
-```
-$ sudo service mosquitto start
-```
-
-#### 4. (Option2) Connect to the internet to enable alert notification to Azure IoT hub -> Open Dstro for Kibana.
 
 ##  Data analysis and visualization
+
 Data analysis and visualization with Open Distro for Kibana.  
 After access and login the Open Distro for Kibana, create Visualization and Dashboard.
 Refer to the [README guide](kibana/README.md#Create-visualization-and-Dashboard) in kibana directory for the creating visualization details.
+
+
 
 
 ## Licenses
