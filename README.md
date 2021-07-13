@@ -86,27 +86,26 @@ Tree after download models dir:
 ```
 
 ### Option1: Send a message alert to mobile phone
-#### 6. (Option1) To install MQTT Client
+#### 1. (Option1) To install MQTT Client
 ```
 $ pip3 install paho-mqtt
 ```
 
-#### 7. (Option1) To install Mosquitto MQTT Broker
+#### 2. (Option1) To install Mosquitto MQTT Broker
 ```
 $ sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa
 $ sudo apt update
 $ sudo apt install mosquitto
 ```
 
-#### 8. (Option1) To install Mobile App  
+#### 3. (Option1) To install Mobile App  
 
 Please access the APK link below in your Android phone and allow to install.
 
 [PFAClientApp-Alpha2.apk](https://drive.google.com/drive/folders/1qEHUzzTnI7vqAFdPu-gjk2ka0yYUPykv?usp=sharing)
 
-Usage of the mobile application is presented in the [demo video](src/people_flow_analysis_demo.gif). 
 
-### (Option1) Mobile Connection Setup
+#### 4. (Option1) Mobile Connection Setup
 1. On Linux terminal, start the mosquitto message broker service
 	```	
 	$ sudo service mosquitto start
@@ -141,7 +140,7 @@ Please refer to the [README guide](kibana/README.md) in Kibana dir for the setup
  
 ## Usage
 
-#### 1. (Option1) Start mosquitto message broker service to enable alert notification to Mobile application
+#### 0. (Option1) Start mosquitto message broker service to enable alert notification to Mobile application
 
 ```
 $ sudo service mosquitto start
@@ -155,7 +154,7 @@ $ cd script
 $ python3 main.py [VIDEO/FILE/PATH]
 
 #Use sample data
-$ python3 main.py ../data/pedestrian2_720p.264
+$ python3 main.py ../data/2020-08-27_15-12-31.264
 ```  
 #### Using USB webcom or Raspberry Pi Camera
 1. Edit the Camera flag in `config/pfa_config.ini` (witch should be line 97):
