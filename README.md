@@ -13,7 +13,7 @@ There is also a calibration process to define the ground surface mapping from th
 ## Prerequisite
 
 - NVIDIA Jetson Platform
-- [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.4
+- [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.6
 - USB webcam or 8 MP Raspberry Pi Camera or Video(.h264 format)
 
 Option:
@@ -22,13 +22,13 @@ Option:
 
 Test on:
 
-- Jetson Xavier, nano, JetPack 4.4, Video, USB webcam, and Android Phone. 
+- Jetson AGX Xavier, NX, JetPack 4.6, Video, USB webcam. 
 
 ## Installation
 
 ### Requirements:
 
-- [NVIDIA DeepStream](https://developer.nvidia.com/deepstream-sdk) 5.0
+- [NVIDIA DeepStream](https://developer.nvidia.com/deepstream-sdk) 6.0
 - MQTT Client
 - Mosquitto MQTT Broker
 - Download sample data
@@ -50,25 +50,20 @@ Download package [here](https://developer.nvidia.com/deepstream-getting-started)
 
 ```
 $ sudo tar -xvf deepstream_sdk_<deepstream_version>_jetson.tbz2 -C /
-$ cd /opt/nvidia/deepstream/deepstream-5.0
+$ cd /opt/nvidia/deepstream/deepstream-6.0
 $ sudo ./install.sh
 $ sudo ldconfig
 ```
 See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Quickstart.html#install-the-deepstream-sdk) , and more.  
 
-Python Bindings
-```
-$ cd /opt/nvidia/deepstream/deepstream-5.0/lib
-$ sudo python3 setup.py install
-```
-
-See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/deepstream/dev-guide/text/DS_Python_Sample_Apps.html#metadata-access) , and more.
+#### 3. Install DeepStream Python Bindings
+See [NVIDIA-AI-IOT/deepstream_python_apps/bindings/README.md](https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/tree/master/bindings).
 
 
-#### 3. Download sample data
+#### 4. Download sample data
 Please download the sample data [here](https://drive.google.com/drive/folders/1YnxqMk-S5a3rMu-o41HBxX60h9rVc5m8?usp=sharing). (Google Drive link)
 
-#### 4. Download models 
+#### 5. Download models 
  Download the models dir from [here](https://drive.google.com/drive/folders/1LBr1fiOOBtGEzRAF3RXIBdOfjg-kgFRT?usp=sharing). (Google Drive link)
 
 Tree after download models dir:
