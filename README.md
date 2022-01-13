@@ -13,7 +13,7 @@ There is also a calibration process to define the ground surface mapping from th
 ## Prerequisite
 
 - NVIDIA Jetson Platform
-- [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.4
+- [JetPack](https://developer.nvidia.com/embedded/jetpack) 4.4 or 4.5.x
 - USB webcam or 8 MP Raspberry Pi Camera or Video(.h264 format)
 
 Option:
@@ -22,7 +22,7 @@ Option:
 
 Test on:
 
-- Jetson Xavier, nano, JetPack 4.4, Video, USB webcam, and Android Phone. 
+- Jetson Xavier, nano, JetPack 4.4/4.5.1, Video, USB webcam, and Android Phone. 
 
 ## Installation
 
