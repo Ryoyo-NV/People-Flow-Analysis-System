@@ -778,7 +778,7 @@ class Tracker(cc.Calibration):
         #Set nv-tracker properties
         pgie.set_property('config-file-path', constant.DSTEST2_PGIE_CONFIG)
         tracker.set_property('ll-lib-file', \
-            '/opt/nvidia/deepstream/deepstream-5.0/lib/libnvds_nvdcf.so')
+            '/opt/nvidia/deepstream/deepstream/lib/libnvds_nvmultiobjecttracker.so')
         tracker.set_property('tracker-width', (21 * 32))
         tracker.set_property('tracker-height', (12 * 32))
         tracker.set_property('enable-past-frame', 1)
