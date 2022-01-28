@@ -59,6 +59,17 @@ See [NVIDIA DeepStream SDK Developer Guide](https://docs.nvidia.com/metropolis/d
 #### 3. Install DeepStream Python Bindings
 See [NVIDIA-AI-IOT/deepstream_python_apps/bindings/README.md](https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/tree/master/bindings).
 
+```
+$ cd /opt/nvidia/deepstream/deepstream-6.0/source/
+$ sudo git clone https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git
+$ cd deepstream_python_apps/bindings
+
+$ sudo pip3 install pybind11
+$ sudo git submodule update --init
+$ sudo mkdir build && cd build
+$ sudo cmake ..  -DPYTHON_MAJOR_VERSION=3 -DPYTHON_MINOR_VERSION=6 -DPIP_PLATFORM=linux_aarch64 -DDS_PATH=/opt/nvidia/deepstream/deepstream-6.0/
+$ sudo make
+```
 
 #### 4. Download sample data
 Please download the sample data [here](https://drive.google.com/drive/folders/1YnxqMk-S5a3rMu-o41HBxX60h9rVc5m8?usp=sharing). (Google Drive link)
